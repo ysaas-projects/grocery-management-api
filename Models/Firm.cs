@@ -38,6 +38,8 @@ namespace grocery_management.Models
         public DateTime? UpdatedAt { get; set; }
 
         public bool IsDeleted { get; set; } = false;
+        public ICollection<Category> Categories { get; set; } = new List<Category>();
+
     }
 
     public class FirmCreateDto
