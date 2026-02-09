@@ -20,6 +20,8 @@ namespace grocery_management.Models
 
         public DateTime? UpdatedAt { get; set; }
 
+        //[Required]
+        //public int FirmId { get; set; }
         public bool IsActive { get; set; } = true;
 
         public bool IsDeleted { get; set; } = false;
@@ -29,6 +31,10 @@ namespace grocery_management.Models
 
         [ForeignKey("RoleId")]
         public virtual Role Role { get; set; }
+        //[ForeignKey("FirmId")]
+
+        //public virtual Firm Firm { get; set; }
+
     }
 
     public class CreateUserRoleDTO

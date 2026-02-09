@@ -23,6 +23,8 @@ namespace grocery_management.Data
         public DbSet<UserRole> UserRoles { get; set; }
         public DbSet<UserSession> UserSessions { get; set; }
 
+        public DbSet<Firm>Firms { get; set; }
+
         // =========================
         // MODEL CONFIGURATION
         // =========================
