@@ -1,0 +1,19 @@
+﻿CREATE TABLE Firms
+(
+    FirmId INT IDENTITY(1,1) PRIMARY KEY,
+
+    FirmName NVARCHAR(100) NOT NULL,
+    FirmCode NVARCHAR(50) NOT NULL UNIQUE,
+
+    Address NVARCHAR(255) NULL,
+    ContactNumber NVARCHAR(20) NULL,
+    ContactPerson NVARCHAR(100) NULL,
+    GstNumber NVARCHAR(30) NULL,
+    LogoImagePath NVARCHAR(500) NULL,
+
+    IsActive BIT NOT NULL DEFAULT 1,
+
+    CreatedAt DATETIME NOT NULL DEFAULT GETDATE(),
+    UpdatedAt DATETIME NULL,
+    IsDeleted BIT NOT NULL DEFAULT 0
+);
