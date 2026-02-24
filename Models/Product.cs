@@ -51,6 +51,8 @@ namespace grocery_management.Models
 
         [ForeignKey(nameof(CategoryId))]
         public Category Category { get; set; } = null!;
+
+        public ICollection<ProductImage> ProductImages { get; set; } = new List<ProductImage>();
     }
     public class ProductCreateDto
     {
@@ -136,5 +138,6 @@ namespace grocery_management.Models
 
         public DateTime CreatedAt { get; set; }
         public DateTime? UpdatedAt { get; set; }
+        public string? PrimaryImageUrl { get; set; }
     }
 }

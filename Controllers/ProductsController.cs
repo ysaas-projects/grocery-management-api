@@ -53,6 +53,7 @@ namespace grocery_management.Controllers
                 var products = await _context.Products
                     .Include(p => p.Firm)
                     .Include(p => p.Category)
+                    .Include(p => p.ProductImages)
                     .Where(p => p.FirmId == firmId && !p.IsDeleted)
                     .OrderBy(p => p.ProductName)
                     .Select(p => new ProductResponseDto
@@ -72,7 +73,12 @@ namespace grocery_management.Controllers
                         LowStockAlert = p.LowStockAlert,
                         IsActive = p.IsActive,
                         CreatedAt = p.CreatedAt,
-                        UpdatedAt = p.UpdatedAt
+                        UpdatedAt = p.UpdatedAt,
+                         PrimaryImageUrl = p.ProductImages
+        .Where(img => !img.IsDeleted && img.IsPrimary)
+        .OrderBy(img => img.SortOrder)
+        .Select(img => img.ImageUrl)
+        .FirstOrDefault()
                     })
                     .ToListAsync();
 

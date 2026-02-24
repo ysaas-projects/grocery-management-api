@@ -71,10 +71,7 @@ namespace grocery_management.Controllers
             return ApiResponse(true, "Users fetched successfully", users);
         }
 
-        // ================================
-        // GET USER BY ID
-        // Self OR Admin
-        // ================================
+        
         [HttpGet("{userId}")]
         public async Task<IActionResult> GetUserById(int userId)
         {
@@ -109,10 +106,7 @@ namespace grocery_management.Controllers
             return ApiResponse(true, "User fetched successfully", user);
         }
 
-        // ================================
-        // CHANGE PASSWORD
-        // Self OR Super-Admin
-        // ================================
+        
         [HttpPost("{userId}/change-password")]
         public async Task<IActionResult> ChangePassword(
             int userId,
@@ -142,10 +136,6 @@ namespace grocery_management.Controllers
             return ApiResponse(true, "Password changed successfully");
         }
 
-        // ================================
-        // RESET PASSWORD
-        // Super-Admin ONLY
-        // ================================
         [HttpPost("{userId}/reset-password")]
         [Authorize(Roles = "Super-Admin")]
         public async Task<IActionResult> ResetPassword(
@@ -167,10 +157,6 @@ namespace grocery_management.Controllers
             return ApiResponse(true, "Password reset successfully");
         }
 
-        // ================================
-        // TOGGLE USER STATUS
-        // Super-Admin / Firm-Admin
-        // ================================
         [HttpPost("{userId}/toggle-status")]
         [Authorize(Roles = "Super-Admin,Firm-Admin")]
         public async Task<IActionResult> ToggleUserStatus(
@@ -189,10 +175,7 @@ namespace grocery_management.Controllers
             return ApiResponse(true, "User status updated successfully");
         }
 
-        // ================================
-        // DELETE USER (SOFT DELETE)
-        // Super-Admin ONLY
-        // ================================
+        
         [HttpDelete("{userId}")]
         [Authorize(Roles = "Super-Admin")]
         public async Task<IActionResult> DeleteUser(int userId)
