@@ -62,7 +62,9 @@ namespace grocery_management.Models
         // Navigation properties
         public virtual ICollection<UserRole> UserRoles { get; set; } = new List<UserRole>();
         public virtual ICollection<UserSession> UserSessions { get; set; } = new List<UserSession>();
-
+       
+        [ForeignKey(nameof(FirmId))]
+        public Firm? Firm { get; set; }
     }
 
     // DTOs for CRUD operations 
