@@ -213,5 +213,73 @@ namespace grocery_management.Controllers
                     error: ex.Message, statusCode: 500);
             }
         }
+
+
+
+        // ================================
+        // SET PRIMARY IMAGE
+        // ================================
+        [HttpPut("{id}/set-primary")]
+        public async Task<IActionResult> SetPrimaryImage(int id)
+        {
+            try
+            {
+                var firmId = GetFirmIdFromToken();
+
+                if (firmId == null)
+                    return ApiResponse(false, "Unauthorized");
+
+                var image = await _context.ProductImages
+                    .FirstOrDefaultAsync(i =>
+                        i.ProductImageId == id &&
+                        i.FirmId == firmId &&
+                        !i.IsDeleted);
+
+                if (image == null)
+                    return ApiResponse(false, "Image not found");
+
+
+
+                // remove old primary
+
+                var existingPrimary =
+                    await _context.ProductImages
+                    .Where(i =>
+                        i.ProductId == image.ProductId &&
+                        i.FirmId == firmId &&
+                        i.IsPrimary &&
+                        !i.IsDeleted)
+                    .ToListAsync();
+
+
+
+                foreach (var img in existingPrimary)
+                {
+                    img.IsPrimary = false;
+                    img.UpdatedAt = DateTime.UtcNow;
+                }
+
+
+
+                // set new primary
+
+                image.IsPrimary = true;
+                image.UpdatedAt = DateTime.UtcNow;
+
+
+
+                await _context.SaveChangesAsync();
+
+
+
+                return ApiResponse(true, "Primary image updated");
+            }
+            catch (Exception ex)
+            {
+                return ApiResponse(false, ex.Message);
+            }
+        }
+
+
     }
 }

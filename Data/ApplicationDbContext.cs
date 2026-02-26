@@ -15,9 +15,7 @@ namespace grocery_management.Data
         {
         }
 
-        // =========================
-        // DB SETS
-        // =========================
+        
         public DbSet<User> Users { get; set; }
         public DbSet<Role> Roles { get; set; }
         public DbSet<UserRole> UserRoles { get; set; }
@@ -29,6 +27,10 @@ namespace grocery_management.Data
         public DbSet<ProductImage> ProductImages{ get; set; }
 
         public DbSet<ProductBatch> ProductBatches { get; set; }
+
+        public DbSet<StockTransaction> StockTransactions { get; set; }
+
+        public DbSet<StockAdjustment> StockAdjustments { get; set; }
         protected override void OnModelCreating(ModelBuilder modelBuilder)
         {
             base.OnModelCreating(modelBuilder);

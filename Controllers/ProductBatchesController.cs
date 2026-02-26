@@ -27,7 +27,7 @@ namespace grocery_management.Controllers
             _logger = logger;
         }
 
-       
+
         private int? GetFirmIdFromToken()
         {
             var firmIdStr = User.FindFirstValue("firmId");
@@ -37,7 +37,7 @@ namespace grocery_management.Controllers
             return null;
         }
 
-       
+
         [HttpGet]
         public async Task<IActionResult> GetAll()
         {
@@ -122,7 +122,7 @@ namespace grocery_management.Controllers
             }
         }
 
-       
+
         [HttpPost]
         public async Task<IActionResult> Create([FromBody] ProductBatchCreateDto dto)
         {
@@ -170,7 +170,7 @@ namespace grocery_management.Controllers
             }
         }
 
-       
+
         [HttpPut("{id}")]
         public async Task<IActionResult> Update(long id, [FromBody] ProductBatchUpdateDto dto)
         {
@@ -209,7 +209,7 @@ namespace grocery_management.Controllers
             }
         }
 
-       
+
         [HttpDelete("{id}")]
         public async Task<IActionResult> Delete(long id)
         {
@@ -236,6 +236,72 @@ namespace grocery_management.Controllers
             catch (Exception ex)
             {
                 _logger.LogError(ex, "Error in Delete Batch {BatchId}", id);
+                return ApiResponse(false, "Something went wrong", error: ex.Message, statusCode: 500);
+            }
+        }
+
+        [HttpPost("sell")]
+        public async Task<IActionResult> SellProduct([FromBody] SellProductDto dto)
+        {
+            if (dto.SellQuantity <= 0)
+                return ApiResponse(false, "Invalid quantity");
+
+            try
+            {
+                var firmId = GetFirmIdFromToken();
+                if (firmId == null)
+                    return ApiResponse(false, "Unauthorized", statusCode: 401);
+
+                var batches = await _context.ProductBatches
+                    .Where(b =>
+                        b.ProductId == dto.ProductId &&
+                        b.FirmId == firmId &&
+                        !b.IsDeleted &&
+                        b.RemainingQty > 0)
+                    .OrderBy(b => b.ExpiryDate)     
+                    .ThenBy(b => b.BatchId)         
+                    .ToListAsync();
+
+                if (!batches.Any())
+                    return ApiResponse(false, "No stock available");
+
+                decimal remainingToSell = dto.SellQuantity;
+                var deductionLog = new List<object>();
+
+                foreach (var batch in batches)
+                {
+                    if (remainingToSell <= 0)
+                        break;
+
+                    var deductQty = Math.Min(batch.RemainingQty, remainingToSell);
+
+                    batch.RemainingQty -= deductQty;
+                    batch.UpdatedAt = DateTime.UtcNow;
+
+                    remainingToSell -= deductQty;
+
+                    deductionLog.Add(new
+                    {
+                        batch.BatchId,
+                        deducted = deductQty
+                    });
+                }
+
+                if (remainingToSell > 0)
+                    return ApiResponse(false, "Insufficient stock");
+
+                await _context.SaveChangesAsync();
+
+                return ApiResponse(true, "Product sold successfully", new
+                {
+                    dto.ProductId,
+                    SoldQty = dto.SellQuantity,
+                    BatchesUsed = deductionLog
+                });
+            }
+            catch (Exception ex)
+            {
+                _logger.LogError(ex, "Error in SellProduct");
                 return ApiResponse(false, "Something went wrong", error: ex.Message, statusCode: 500);
             }
         }

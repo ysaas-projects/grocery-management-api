@@ -16,10 +16,12 @@ namespace grocery_management.Controllers
     public class FirmsController : BaseApiController
     {
         private readonly ApplicationDbContext _context;
+        private readonly IWebHostEnvironment _env;
 
-        public FirmsController(ApplicationDbContext context)
+        public FirmsController(ApplicationDbContext context, IWebHostEnvironment env)
         {
             _context = context;
+            _env = env;
         }
 
         // ================================
@@ -83,7 +85,9 @@ namespace grocery_management.Controllers
                     f.ContactPerson,
                     f.GstNumber,
                     f.LogoImagePath,
-                    f.IsActive
+                    f.IsActive,
+                    f.CreatedAt,
+                    f.UpdatedAt
                 })
                 .FirstOrDefaultAsync();
 
@@ -123,13 +127,27 @@ namespace grocery_management.Controllers
                 // ================================
                 string? logoPath = null;
 
+                if (dto.Logo != null)
+                {
+                    var allowedExtensions = new[] { ".jpg", ".jpeg", ".png", ".webp" };
+                    var ext = Path.GetExtension(dto.Logo.FileName).ToLower();
+
+                    if (!allowedExtensions.Contains(ext))
+                        return ApiResponse(false, "Invalid image format");
+
+                    if (dto.Logo.Length > 2 * 1024 * 1024)
+                        return ApiResponse(false, "Logo size must be under 2MB");
+                }
+
+
                 if (dto.Logo != null && dto.Logo.Length > 0)
                 {
-                    var uploadsFolder = Path.Combine(
-                        Directory.GetCurrentDirectory(),
-                        "wwwroot",
-                        "uploads"
-                    );
+              
+                    var webRoot = _env.WebRootPath
+                    ?? Path.Combine(_env.ContentRootPath, "wwwroot");
+
+                    var uploadsFolder = Path.Combine(webRoot, "uploads");
+                    Directory.CreateDirectory(uploadsFolder);
 
                     if (!Directory.Exists(uploadsFolder))
                         Directory.CreateDirectory(uploadsFolder);
@@ -191,7 +209,7 @@ namespace grocery_management.Controllers
                         UserId = adminUser.UserId,
                         RoleId = firmAdminRole.RoleId,
 
-                        FirmId = firm.FirmId,
+                        //FirmId = firm.FirmId,
                         IsActive = true
                     });
 
@@ -227,6 +245,7 @@ namespace grocery_management.Controllers
         [Consumes("multipart/form-data")]
         public async Task<IActionResult> UpdateFirm(int id, [FromForm] FirmUpdateDto dto)
         {
+            // 🔐 Firm-Admin can update only own firm
             if (User.IsInRole("Firm-Admin"))
             {
                 var firmIdClaim = User.FindFirst("firmId")?.Value;
@@ -240,45 +259,86 @@ namespace grocery_management.Controllers
             if (firm == null)
                 return ApiResponse(false, "Firm not found");
 
-            firm.FirmName = dto.FirmName;
-            firm.FirmCode = dto.FirmCode;
-            firm.Address = dto.Address;
-            firm.ContactNumber = dto.ContactNumber;
-            firm.ContactPerson = dto.ContactPerson;
-            firm.GstNumber = dto.GstNumber;
-            firm.IsActive = dto.IsActive;
-            firm.UpdatedAt = DateTime.UtcNow;
+            // 🔁 DUPLICATE CHECK (FirmCode)
+            bool exists = await _context.Firms.AnyAsync(f =>
+                f.FirmId != id &&
+                !f.IsDeleted &&
+                f.FirmCode == dto.FirmCode);
 
-            // UPDATE LOGO (OPTIONAL)
-            if (dto.Logo != null && dto.Logo.Length > 0)
+            if (exists)
+                return ApiResponse(false, "Firm code already exists");
+
+            using var transaction = await _context.Database.BeginTransactionAsync();
+
+            try
             {
-                var uploadsFolder = Path.Combine(
-                    Directory.GetCurrentDirectory(),
-                    "wwwroot",
-                    "uploads"
-                );
+                firm.FirmName = dto.FirmName.Trim();
+                firm.FirmCode = dto.FirmCode.Trim();
+                firm.Address = dto.Address;
+                firm.ContactNumber = dto.ContactNumber;
+                firm.ContactPerson = dto.ContactPerson;
+                firm.GstNumber = dto.GstNumber;
+                firm.IsActive = dto.IsActive;
+                firm.UpdatedAt = DateTime.UtcNow;
 
-                Directory.CreateDirectory(uploadsFolder);
-
-                var fileName =
-                    $"{Guid.NewGuid()}{Path.GetExtension(dto.Logo.FileName)}";
-
-                var filePath = Path.Combine(uploadsFolder, fileName);
-
-                using (var stream = new FileStream(filePath, FileMode.Create))
+                // ================================
+                // LOGO UPDATE (OPTIONAL)
+                // ================================
+                if (dto.Logo != null && dto.Logo.Length > 0)
                 {
+                    var allowedExtensions = new[] { ".jpg", ".jpeg", ".png", ".webp" };
+                    var ext = Path.GetExtension(dto.Logo.FileName).ToLower();
+
+                    if (!allowedExtensions.Contains(ext))
+                        return ApiResponse(false, "Invalid image format");
+
+                    if (dto.Logo.Length > 2 * 1024 * 1024)
+                        return ApiResponse(false, "Logo size must be under 2MB");
+
+                    var webRoot = _env.WebRootPath
+                        ?? Path.Combine(_env.ContentRootPath, "wwwroot");
+
+                    var uploadsFolder = Path.Combine(webRoot, "uploads");
+                    Directory.CreateDirectory(uploadsFolder);
+
+                    // 🗑️ DELETE OLD LOGO
+                    if (!string.IsNullOrEmpty(firm.LogoImagePath))
+                    {
+                        var oldFileName = Path.GetFileName(firm.LogoImagePath);
+                        var oldFilePath = Path.Combine(uploadsFolder, oldFileName);
+
+                        if (System.IO.File.Exists(oldFilePath))
+                            System.IO.File.Delete(oldFilePath);
+                    }
+
+                    // 💾 SAVE NEW LOGO
+                    var fileName = $"{Guid.NewGuid()}{ext}";
+                    var filePath = Path.Combine(uploadsFolder, fileName);
+
+                    using var stream = new FileStream(filePath, FileMode.Create);
                     await dto.Logo.CopyToAsync(stream);
+
+                    firm.LogoImagePath =
+                        $"{Request.Scheme}://{Request.Host}/uploads/{fileName}";
                 }
 
-                var request = HttpContext.Request;
-                firm.LogoImagePath =
-                    $"{request.Scheme}://{request.Host}/uploads/{fileName}";
+                await _context.SaveChangesAsync();
+                await transaction.CommitAsync();
+
+                return ApiResponse(true, "Firm updated successfully", new
+                {
+                    firm.FirmId,
+                    firm.FirmName,
+                    firm.LogoImagePath
+                });
             }
-
-            await _context.SaveChangesAsync();
-
-            return ApiResponse(true, "Firm updated successfully");
+            catch (Exception ex)
+            {
+                await transaction.RollbackAsync();
+                return ApiResponse(false, "Error updating firm", error: ex.Message);
+            }
         }
+
 
         // ================================
         // DELETE FIRM → Super-Admin

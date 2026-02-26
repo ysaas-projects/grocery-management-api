@@ -101,13 +101,15 @@ namespace grocery_management.Controllers
                     {
                         CategoryId = c.CategoryId,
                         FirmId = c.FirmId,
-                        FirmName = c.Firm.FirmName,   // 👈 IMPORTANT
+                        FirmName = c.Firm.FirmName,   
 
                         CategoryName = c.CategoryName,
                         ParentCategoryId = c.ParentCategoryId,
                         IsActive = c.IsActive,
                         CreatedAt = c.CreatedAt,
-                        UpdatedAt = c.UpdatedAt
+                        UpdatedAt = c.UpdatedAt,
+                        ProductCount =_context.Products
+                                      .Count(p => p.CategoryId == c.CategoryId && p.IsDeleted == false)
                     })
                     .FirstOrDefaultAsync();
 

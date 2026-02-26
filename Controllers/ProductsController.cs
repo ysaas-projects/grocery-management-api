@@ -27,9 +27,7 @@ namespace grocery_management.Controllers
             _logger = logger;
         }
 
-        // ================================
-        // GET FirmId from JWT
-        // ================================
+        
         private int? GetFirmIdFromToken()
         {
             var firmIdStr = User.FindFirstValue("firmId");
