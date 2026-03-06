@@ -49,7 +49,7 @@ namespace grocery_management.Controllers
 
                 var data = await _context.StockTransactions
                     .Include(x => x.Product)
-                    .Include(x => x.Batch)
+                    .Include(x => x.ProductBatch)
                     .Include(x => x.Firm)
                     .Where(x => x.FirmId == firmId)
                     .OrderByDescending(x => x.TransactionId)
@@ -61,13 +61,13 @@ namespace grocery_management.Controllers
                         ProductId = x.ProductId,
                         ProductName = x.Product.ProductName,
                         BatchId = x.BatchId,
-                        BatchNumber = x.Batch != null ? x.Batch.BatchNumber : null,
+                        BatchNumber = x.ProductBatch != null ? x.ProductBatch.BatchNumber : null,
                         TransactionType = x.TransactionType,
                         Quantity = x.Quantity,
                         IsIncrease = x.IsIncrease,
                         ReferenceId = x.ReferenceId,
                         ReferenceType = x.ReferenceType,
-                        Notes = x.Notes,
+                        Notes = x.Remark,
                         CreatedAt = x.CreatedAt
                     })
                     .ToListAsync();
@@ -87,7 +87,7 @@ namespace grocery_management.Controllers
             [FromQuery] int pageNumber = 1,
             [FromQuery] int pageSize = 20,
             [FromQuery] int? productId = null)
-        {
+        {   
             try
             {
                 var firmId = GetFirmIdFromToken();
@@ -96,7 +96,7 @@ namespace grocery_management.Controllers
 
                 var query = _context.StockTransactions
                     .Include(x => x.Product)
-                    .Include(x => x.Batch)
+                    .Include(x => x.ProductBatch)
                     .Where(x => x.FirmId == firmId);
 
                 if (productId.HasValue)
@@ -115,13 +115,13 @@ namespace grocery_management.Controllers
                         ProductId = x.ProductId,
                         ProductName = x.Product.ProductName,
                         BatchId = x.BatchId,
-                        BatchNumber = x.Batch != null ? x.Batch.BatchNumber : null,
+                        BatchNumber = x.ProductBatch != null ? x.ProductBatch.BatchNumber : null,
                         TransactionType = x.TransactionType,
                         Quantity = x.Quantity,
                         IsIncrease = x.IsIncrease,
                         ReferenceId = x.ReferenceId,
                         ReferenceType = x.ReferenceType,
-                        Notes = x.Notes,
+                        Notes = x.Remark,
                         CreatedAt = x.CreatedAt
                     })
                     .ToListAsync();
@@ -154,7 +154,7 @@ namespace grocery_management.Controllers
 
                 var item = await _context.StockTransactions
                     .Include(x => x.Product)
-                    .Include(x => x.Batch)
+                    .Include(x => x.ProductBatch)
                     .Include(x => x.Firm)
                     .Where(x => x.TransactionId == id && x.FirmId == firmId)
                     .Select(x => new StockTransactionResponseDto
@@ -165,13 +165,13 @@ namespace grocery_management.Controllers
                         ProductId = x.ProductId,
                         ProductName = x.Product.ProductName,
                         BatchId = x.BatchId,
-                        BatchNumber = x.Batch != null ? x.Batch.BatchNumber : null,
+                        BatchNumber = x.ProductBatch != null ? x.ProductBatch.BatchNumber : null,
                         TransactionType = x.TransactionType,
                         Quantity = x.Quantity,
                         IsIncrease = x.IsIncrease,
                         ReferenceId = x.ReferenceId,
                         ReferenceType = x.ReferenceType,
-                        Notes = x.Notes,
+                        Notes = x.Remark,
                         CreatedAt = x.CreatedAt
                     })
                     .FirstOrDefaultAsync();
@@ -216,7 +216,7 @@ namespace grocery_management.Controllers
                     IsIncrease = dto.IsIncrease,
                     ReferenceId = dto.ReferenceId,
                     ReferenceType = dto.ReferenceType,
-                    Notes = dto.Notes,
+                    Remark = dto.Notes,
                     CreatedAt = DateTime.UtcNow
                 };
 

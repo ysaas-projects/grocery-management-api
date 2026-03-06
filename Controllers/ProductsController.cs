@@ -258,12 +258,12 @@ namespace grocery_management.Controllers
                         p.Barcode == dto.Barcode);
 
                     if (barcodeExists)
-                        return ApiResponse(false, "Barcode already exists");
+                        return ApiResponse(false, "Barcode already exists", statusCode: 400);
                 }
 
                 // 💰 Price validation
                 if (dto.SalePrice > dto.MRP)
-                    return ApiResponse(false, "SalePrice cannot be greater than MRP");
+                    return ApiResponse(false, "SalePrice cannot be greater than MRP", statusCode: 400);
 
                 var product = new Product
                 {

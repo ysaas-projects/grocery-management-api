@@ -31,6 +31,11 @@ namespace grocery_management.Data
         public DbSet<StockTransaction> StockTransactions { get; set; }
 
         public DbSet<StockAdjustment> StockAdjustments { get; set; }
+        public DbSet<ProductStock> ProductStocks { get; set; }
+        public DbSet<Sale> Sales { get; set; }
+        public DbSet<SaleItem> SaleItems { get; set; }
+
+
         protected override void OnModelCreating(ModelBuilder modelBuilder)
         {
             base.OnModelCreating(modelBuilder);

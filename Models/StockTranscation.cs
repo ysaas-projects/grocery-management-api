@@ -18,6 +18,7 @@ namespace grocery_management.Models
         public int ProductId { get; set; }
 
         public int? BatchId { get; set; }
+
         [Required]
         [StringLength(20)]
         public string TransactionType { get; set; } = null!;
@@ -28,29 +29,33 @@ namespace grocery_management.Models
 
         public bool IsIncrease { get; set; }
 
+        public bool IsDecrease { get; set; }
+
         public int? ReferenceId { get; set; }
 
         [StringLength(20)]
         public string? ReferenceType { get; set; }
 
         [StringLength(500)]
-        public string? Notes { get; set; }
+        public string? Remark { get; set; }
 
         public int? CreatedBy { get; set; }
 
         public DateTime CreatedAt { get; set; } = DateTime.UtcNow;
 
+        public DateTime? UpdatedAt { get; set; }
+
+        public DateTime? DeletedAt { get; set; }
+
+
         [ForeignKey(nameof(FirmId))]
-
         public Firm? Firm { get; set; }
+
         [ForeignKey(nameof(ProductId))]
-
-
         public Product Product { get; set; } = null!;
 
         [ForeignKey(nameof(BatchId))]
-
-        public ProductBatch? Batch { get; set; }
+        public ProductBatch? ProductBatch { get; set; }
     }
 
 

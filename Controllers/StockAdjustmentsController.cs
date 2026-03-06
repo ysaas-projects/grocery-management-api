@@ -27,7 +27,7 @@ namespace grocery_management.Controllers
             _logger = logger;
         }
 
-       
+
         private int? GetFirmIdFromToken()
         {
             var firmIdStr = User.FindFirstValue("firmId");
@@ -37,46 +37,46 @@ namespace grocery_management.Controllers
             return null;
         }
 
-        [HttpGet]
-        public async Task<IActionResult> GetAll()
-        {
-            try
-            {
-                var firmId = GetFirmIdFromToken();
-                if (firmId == null)
-                    return ApiResponse(false, "Unauthorized", statusCode: 401);
+        //[HttpGet]
+        //public async Task<IActionResult> GetAll()
+        //{
+        //    try
+        //    {
+        //        var firmId = GetFirmIdFromToken();
+        //        if (firmId == null)
+        //            return ApiResponse(false, "Unauthorized", statusCode: 401);
 
-                var data = await _context.StockAdjustments
-                    .AsNoTracking()
-                    .Include(x => x.Product)
-                    .Include(x => x.Batch)
-                    .Where(x => x.FirmId == firmId && x.DeletedAt == null)
-                    .OrderByDescending(x => x.AdjustmentId)
-                    .Select(x => new StockAdjustmentResponseDto
-                    {
-                        AdjustmentId = x.AdjustmentId,
-                        FirmId = x.FirmId,
-                        ProductId = x.ProductId,
-                        ProductName = x.Product.ProductName,
-                        BatchId = x.BatchId,
-                        BatchNumber = x.Batch != null ? x.Batch.BatchNumber : null,
-                        AdjustmentType = x.AdjustmentType,
-                        Quantity = x.Quantity,
-                        Reason = x.Reason,
-                        CreatedAt = x.CreatedAt
-                    })
-                    .ToListAsync();
+        //        var data = await _context.StockAdjustments
+        //            .AsNoTracking()
+        //            .Include(x => x.Product)
+        //            .Include(x => x.Batch)
+        //            .Where(x => x.FirmId == firmId && x.DeletedAt == null)
+        //            .OrderByDescending(x => x.AdjustmentId)
+        //            .Select(x => new StockAdjustmentResponseDto
+        //            {
+        //                AdjustmentId = x.AdjustmentId,
+        //                FirmId = x.FirmId,
+        //                ProductId = x.ProductId,
+        //                ProductName = x.Product.ProductName,
+        //                BatchId = x.BatchId,
+        //                BatchNumber = x.Batch != null ? x.Batch.BatchNumber : null,
+        //                AdjustmentType = x.AdjustmentType,
+        //                Quantity = x.Quantity,
+        //                Reason = x.Reason,
+        //                CreatedAt = x.CreatedAt
+        //            })
+        //            .ToListAsync();
 
-                return ApiResponse(true, "Adjustments fetched successfully", data);
-            }
-            catch (Exception ex)
-            {
-                _logger.LogError(ex, "Error in GetAll Adjustments");
-                return ApiResponse(false, "Something went wrong", error: ex.Message, statusCode: 500);
-            }
-        }
+        //        return ApiResponse(true, "Adjustments fetched successfully", data);
+        //    }
+        //    catch (Exception ex)
+        //    {
+        //        _logger.LogError(ex, "Error in GetAll Adjustments");
+        //        return ApiResponse(false, "Something went wrong", error: ex.Message, statusCode: 500);
+        //    }
+        //}
 
-       
+
         [HttpPost]
         public async Task<IActionResult> Create([FromBody] StockAdjustmentCreateDto dto)
         {
@@ -97,24 +97,18 @@ namespace grocery_management.Controllers
                 if (firmId == null)
                     return ApiResponse(false, "Unauthorized", statusCode: 401);
 
-                var batch = await _context.ProductBatches
+                var productStock = await _context.ProductStocks
                     .FirstOrDefaultAsync(x =>
-                        x.BatchId == dto.BatchId &&
                         x.FirmId == firmId &&
+                        x.ProductId == dto.ProductId &&
                         !x.IsDeleted);
 
-                if (batch == null)
-                    return ApiResponse(false, "Batch not found");
+                //if (productStock == null)
+                //    return ApiResponse(false, "Product stock not found");
 
                 bool isIncrease = dto.AdjustmentType?.ToUpper() == "INCREASE";
+                bool isDecrease = dto.AdjustmentType?.ToUpper() == "DECREASE";
 
-               
-                if (isIncrease)
-                    batch.RemainingQty += dto.Quantity;
-                else
-                    batch.RemainingQty -= dto.Quantity;
-
-                batch.UpdatedAt = DateTime.UtcNow;
 
                 var userIdStr = User.FindFirstValue(ClaimTypes.NameIdentifier);
                 int? userId = int.TryParse(userIdStr, out var uid) ? uid : null;
@@ -123,7 +117,6 @@ namespace grocery_management.Controllers
                 {
                     FirmId = firmId,
                     ProductId = dto.ProductId,
-                    BatchId = dto.BatchId,
                     AdjustmentType = dto.AdjustmentType,
                     Quantity = dto.Quantity,
                     Reason = dto.Reason,
@@ -133,19 +126,38 @@ namespace grocery_management.Controllers
 
                 _context.StockAdjustments.Add(adjustment);
 
-               
+
                 _context.StockTransactions.Add(new StockTransaction
                 {
                     FirmId = firmId,
                     ProductId = dto.ProductId,
-                    BatchId = dto.BatchId,
                     TransactionType = "ADJUSTMENT",
                     Quantity = dto.Quantity,
                     IsIncrease = isIncrease,
+                    IsDecrease = isDecrease,
                     ReferenceType = "ADJUSTMENT",
                     CreatedBy = userId,
                     CreatedAt = DateTime.UtcNow
                 });
+
+
+                if (productStock != null)
+                {
+                    productStock.Quantity = (productStock.Quantity + (isIncrease ? dto.Quantity : -dto.Quantity));
+                    productStock.Remark = "ADJUSTMENT";
+                }
+                else
+                {
+                    _context.ProductStocks.Add(new ProductStock
+                    {
+                        FirmId = firmId,
+                        ProductId = dto.ProductId,
+                        Quantity = dto.Quantity,
+                        Remark = "ADJUSTMENT",
+                        CreatedAt = DateTime.UtcNow
+                    });
+                }
+
 
                 await _context.SaveChangesAsync();
 
@@ -161,36 +173,38 @@ namespace grocery_management.Controllers
             }
         }
 
-      
-        [HttpDelete("{id}")]
-        public async Task<IActionResult> Delete(int id)
-        {
-            try
-            {
-                var firmId = GetFirmIdFromToken();
-                if (firmId == null)
-                    return ApiResponse(false, "Unauthorized", statusCode: 401);
 
-                var item = await _context.StockAdjustments
-                    .FirstOrDefaultAsync(x =>
-                        x.AdjustmentId == id &&
-                        x.FirmId == firmId &&
-                        x.DeletedAt == null);
+        //[HttpDelete("{id}")]
+        //public async Task<IActionResult> Delete(int id)
+        //{
+        //    try
+        //    {
+        //        var firmId = GetFirmIdFromToken();
+        //        if (firmId == null)
+        //            return ApiResponse(false, "Unauthorized", statusCode: 401);
 
-                if (item == null)
-                    return ApiResponse(false, "Record not found", statusCode: 404);
+        //        var item = await _context.StockAdjustments
+        //            .FirstOrDefaultAsync(x =>
+        //                x.AdjustmentId == id &&
+        //                x.FirmId == firmId &&
+        //                x.DeletedAt == null);
 
-                item.DeletedAt = DateTime.UtcNow;
+        //        if (item == null)
+        //            return ApiResponse(false, "Record not found", statusCode: 404);
 
-                await _context.SaveChangesAsync();
+        //        item.DeletedAt = DateTime.UtcNow;
 
-                return ApiResponse(true, "Adjustment deleted successfully");
-            }
-            catch (Exception ex)
-            {
-                _logger.LogError(ex, "Error in Delete Adjustment {AdjustmentId}", id);
-                return ApiResponse(false, "Something went wrong", error: ex.Message, statusCode: 500);
-            }
-        }
+        //        await _context.SaveChangesAsync();
+
+        //        return ApiResponse(true, "Adjustment deleted successfully");
+        //    }
+        //    catch (Exception ex)
+        //    {
+        //        _logger.LogError(ex, "Error in Delete Adjustment {AdjustmentId}", id);
+        //        return ApiResponse(false, "Something went wrong", error: ex.Message, statusCode: 500);
+        //    }
+        //}
+
+
     }
 }

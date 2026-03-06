@@ -52,8 +52,6 @@ namespace grocery_management.Models
         [Required]
         public int ProductId { get; set; }
 
-        public int? BatchId { get; set; }
-
         public string? AdjustmentType { get; set; }
 
         public decimal Quantity { get; set; }
@@ -62,17 +60,17 @@ namespace grocery_management.Models
     }
 
 
-    public class StockAdjustmentUpdateDto
-    {
-        [Required]
-        public int AdjustmentId { get; set; }
+    //public class StockAdjustmentUpdateDto
+    //{
+    //    [Required]
+    //    public int AdjustmentId { get; set; }
 
-        public string? AdjustmentType { get; set; }
+    //    public string? AdjustmentType { get; set; }
 
-        public decimal Quantity { get; set; }
+    //    public decimal Quantity { get; set; }
 
-        public string? Reason { get; set; }
-    }
+    //    public string? Reason { get; set; }
+    //}
 
 
     
