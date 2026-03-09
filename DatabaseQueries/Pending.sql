@@ -138,3 +138,40 @@ CREATE TABLE StockAdjustments
   	-- CONSTRAINT FK_StockAdjustment_ProductBatches FOREIGN KEY (BatchId) REFERENCES ProductBatches(BatchId),
 
 );
+
+
+    CREATE TABLE Sales
+(
+    SaleId INT IDENTITY PRIMARY KEY,
+
+    FirmId INT NOT NULL,
+
+    InvoiceNumber VARCHAR(50) NOT NULL,
+
+    Subtotal DECIMAL(10,2) NOT NULL,
+
+    GST DECIMAL(10,2) NOT NULL,
+
+    Total DECIMAL(10,2) NOT NULL,
+
+    PaymentMethod VARCHAR(20),
+
+    CreatedAt DATETIME DEFAULT GETUTCDATE()
+);
+
+
+
+CREATE TABLE SaleItems
+(
+    SaleItemId INT IDENTITY PRIMARY KEY,
+
+    SaleId INT NOT NULL,
+
+    ProductId INT NOT NULL,
+
+    Quantity DECIMAL(10,2),
+
+    Price DECIMAL(10,2),
+
+    Total DECIMAL(10,2)
+);
